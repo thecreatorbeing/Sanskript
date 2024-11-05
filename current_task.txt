@@ -1,0 +1,41 @@
+
+Tasks:
+
+ 1) take code stream as a string from the file. (done!)
+
+ 2) break code stream into vector of vectors of strings having statements and blocks. (done!)
+ 
+ 3) break the tree of strings into CodeType objects by linearly parsing them and dividing them into different 'Type' enum. (basic part done/advance part pending!)
+	
+	implement 'use' keyword with json literal to add some C++ source code classes, functions, variables, etc. in the symbol table respectively.
+
+ 4) Generate the relevant CPP code using generateCPP() functions.(*WORKING!)
+
+ 
+
+ 12 + addNum(2,5) * var1; -> * ( + ( 12 addNum(2,5) ) var1 ) or ( (12 addNum(2,5) + var1 ) *
+ 
+ trigger:
+
+ invite
+
+ define
+
+ /*
+
+ return
+
+ if
+
+ switch
+ 
+ until
+
+ iterate
+
+ try
+
+
+ Future Updates:
+ 1]. add memory address of variables in symbol table as well, this will help for better identification of them, if possible then do the same for functions as well
+ 2]. comments must not start within any statement, must start after semicolon ';' so that unexpected behavior is avoided

@@ -1,0 +1,45 @@
+define function fun1() returns int{
+      define __tempVar as int;
+      __tempVar = 1;
+      return __tempVar;
+}
+
+define function max(a as int, b as int) returns int{
+    if ( a > b ){
+        return a;
+    } else {
+        return b;
+    }
+}
+
+define function _main() returns int{
+    /*cannot name it main() since v-studio allows only one main() function*/
+    define num1, num2 as int;
+    num1 = 1; num2 = 2;
+    define const str1, $str2 as string;
+    define flo1, flo2 as float;
+    define bool1, bool2 as bool;
+
+    /*this is a comment!*/
+
+    define var1 as int;
+    var1 = 9;
+
+    num1 = num2 + var1;
+
+    define _flag as int;
+    _flag = 0;
+    until ( _flag )
+    iterate{
+        _flag = _flag - 1;
+    }
+
+    define noname as bool;
+    noname = 9 + ( var1 + num1 );
+
+    if (true){
+        return 0;
+    } else {
+        return 1;
+    }
+}
