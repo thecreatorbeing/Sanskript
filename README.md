@@ -1,4 +1,4 @@
-# Sanskript2
+# Sanskript
 
 The Official Repository of Sanskript Programming Language.
 
