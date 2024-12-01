@@ -15,7 +15,7 @@ static StrVector keywords = {
 
 	"void", "null", "return", "returns",
 
-	"define", "class", "function", "operator", "behavior", /*definitions*/
+	"define", "declare", "class", "function", "operator", "behavior", /*definitions*/
 
 	/*"private", "protected", "public",*//*i changed my mind, now access modifier will be of python style i.e, var, _var & __var*/
 
@@ -23,7 +23,9 @@ static StrVector keywords = {
 
 	"try", "catch", "raise", "beware",
 
-	"invite" /*for importing*/
+	"invite" /*for importing*/,
+
+	"cpp", "end_cpp" /*for calling C++ code*/
 
 };
 

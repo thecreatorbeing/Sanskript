@@ -7,14 +7,52 @@ StrVector Lexer::lex(String _code) {
 	StrVector tokns;
 	/*stores current word*/
 	String wrd;
+
 	/*isStr = isString | iscmt = isComment*/
-	bool isStr = false, isCmt = false;
+	bool isStr = false, isCmt = false, isCppBlk = false;
+	/*last one is for supporting C++ code in Sanskript by simply ignoring C++ code 
+	and adding it in C++ generated code enclosed within try-catch block*/
 	
 	/*lst = last char | chr = current char | nxt = next char*/
 	char lst='\0', chr='\0', nxt='\0';
 	for (int i = 0; i < _code.size(); i++) {
 		chr = _code[i];
 		nxt = ((i + 1) < _code.size()) ? _code[i + 1] : '\0';
+
+		/*this part added later to support C++ code within Sanskript code*/
+		if (lst == 'c' && chr == 'p' && nxt == 'p' && !isStr && !isCmt ) {/*luck by chance 'cpp' keyword is 3 char long, 
+											so i was able to adjust the logic like this*/
+
+			isCppBlk = true; /*don't worry, we cannot nest two cpp blocks, 
+						since whatever inner code of the outer block is ignored*/
+			wrd += chr;
+			lst = chr;
+			continue;
+		}
+		else if (isCppBlk && lst=='e' && chr=='n' && nxt=='d' 
+			&& _code[i+2]=='_' && _code[i+3] == 'c' && _code[i+4] == 'p'
+			&& _code[i+5] == 'p') {/*'end_cpp' is a keyword*/
+			/*while cpp block is active, strings and comments are not checked,
+			so no need to use isStr and isCmt this time*/
+
+			isCppBlk = false;
+			i+=5;/*because, 'd_cpp' of 'end_cpp' keyword needs to be skipped*/
+
+			wrd.pop_back(/*removed lst*/);/*remove 'e' of 'e-n-d' because 'end' is
+			just for determining the end of cpp block, nothing else*/
+			tokns.push_back(wrd);	wrd.clear();
+
+			lst = chr;
+			continue;
+		}
+		else if (isCppBlk) {/*wrd will store complete c++ code in it this time*/
+			wrd += chr;
+			lst = chr;
+			continue;
+		}
+
+
+
 		/*--------------------------------------------------------*/
 		/*ignores consecutive separators{' '|'\t'|'\n'}*/
 		if (isSep(chr) && isSep(lst)) { lst = chr; continue; }

@@ -145,6 +145,7 @@
     <ClInclude Include="ConsolePrintUtil.h" />
     <ClInclude Include="Expression.h" />
     <ClInclude Include="Global.h" />
+    <ClInclude Include="IO.h" />
     <ClInclude Include="Keywords.h" />
     <ClInclude Include="Lexer.h" />
     <ClInclude Include="Parser.h" />
@@ -154,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="main.krit" />
+    <None Include="main2.krit" />
     <None Include="Sanskript2\real_main.krit" />
   </ItemGroup>
   <ItemGroup>

@@ -44,6 +44,14 @@ public:
         }
         std::cout << temp << "\033[0m\n";
     }
+    
+    static void strVector(const StrVector& _sVec) {
+        std::cout << "\033[0;33m[str-Vector]: |";
+        for (const String& _s : _sVec) {
+            std::cout << _s << "|";
+        }
+        std::cout << "\033[0m\n" << std::endl;
+    }
 };
 
 #endif // !CONSOLE_PRINT_UTIL_H

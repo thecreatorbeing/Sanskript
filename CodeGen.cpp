@@ -3,8 +3,9 @@
 #include "ParseUtil.h"
 
 String CodeGen::_starterCode = "/*This Code is generated using Sanskript Transpiler*/\n"
+								"#include<iostream>\n"
 								"#include<string>\n"
-								"using string = std::string;"
+								"using string = std::string;\n"
 								"\n\n";
 
 
@@ -85,7 +86,7 @@ void genCode(Node* _node, String& _genCodeString) {
 	}
 	else if (_node->type == CodeType::ASSIGNMENT_STMT) {
 
-		_tempGenCode = _map[VAR_IDENTIFIER][0] + " =" + _map[RHS_VALUE][0] + ';';
+		_tempGenCode = _map[VAR_IDENTIFIER][0] + " =" + _map[RHS_EXPR][0] + ';';
 
 		_genCodeString += _indentTabs + _tempGenCode + '\n';/*newline*/
 
@@ -98,6 +99,39 @@ void genCode(Node* _node, String& _genCodeString) {
 		_genCodeString += _indentTabs + _tempGenCode + '\n';/*newline*/
 
 		//Print::green("generated RETURN_STMT: |" + _tempGenCode + "|" + std::to_string(currentIndentLevel));
+	}
+
+	else if (_node->type == CodeType::FUN_DEC_STMT){
+
+		if (!_map[FUN_CLASS_NAME][0].empty()) {/*if function belongs to class (can also be done using Symbol Table!)*/
+			_tempGenCode = _map[FUN_ACCESS_MODIFIER][0] + ": "; /*added access modifier*/
+		}
+
+		if (_map[FUN_STATIC_FUN][0] == "true") { _tempGenCode += "static "; }/*either "true" or "false"*/
+
+		_tempGenCode += _map[FUN_RETURN_TYPE][0] + ' '; /*added return type*/
+
+		_tempGenCode += _map[FUN_IDENTIFIER][0] + "( "; /*added function identifier/name*/
+
+		if (_map[FUN_PARAM_DTYPE].empty()) {
+			_tempGenCode += ");";/*difference between fun declaration and fun definition is the ';' added here and '{' added there*/
+		}
+		else {
+			for (size_t param = 0; param < _map[FUN_PARAM_DTYPE].size(); param++) {
+
+				if (param < _map[FUN_PARAM_DTYPE].size() - 1) {/*check whether current param item is not the last one*/
+					_tempGenCode += _map[FUN_PARAM_DTYPE][param] + ' ' + _map[FUN_PARAM_IDEN][param] + ", ";
+				}
+				else {/*when the current param item is the last one*/
+					_tempGenCode += _map[FUN_PARAM_DTYPE][param] + ' ' + _map[FUN_PARAM_IDEN][param] + ");";/*difference between fun declaration and fun definition is the ';' added here and '{' added there*/
+				}
+			}
+		}
+
+		_genCodeString += _indentTabs + _tempGenCode + '\n';/*newline*/
+
+		//Print::green("generated FUN_DECLARATION: |" + _tempGenCode + "|" + std::to_string(currentIndentLevel));
+		//Print::map(_map);
 	}
 	
 	/*NOT WORKING!*/
@@ -114,7 +148,7 @@ void genCode(Node* _node, String& _genCodeString) {
 		_tempGenCode += _map[FUN_IDENTIFIER][0] + "( "; /*added function identifier/name*/
 
 		if (_map[FUN_PARAM_DTYPE].empty()) {
-			_tempGenCode += ") {";
+			_tempGenCode += ") {";/*difference between fun declaration and fun definition is the '{' added here and ';' added there*/
 		}
 		else {
 			for (size_t param = 0; param < _map[FUN_PARAM_DTYPE].size(); param++) {
@@ -123,7 +157,7 @@ void genCode(Node* _node, String& _genCodeString) {
 					_tempGenCode += _map[FUN_PARAM_DTYPE][param] + ' ' + _map[FUN_PARAM_IDEN][param] + ", ";
 				}
 				else {/*when the current param item is the last one*/
-					_tempGenCode += _map[FUN_PARAM_DTYPE][param] + ' ' + _map[FUN_PARAM_IDEN][param] + ") {";
+					_tempGenCode += _map[FUN_PARAM_DTYPE][param] + ' ' + _map[FUN_PARAM_IDEN][param] + ") {";/*difference between fun declaration and fun definition is the '{' added here and ';' added there*/
 				}
 			}
 		}
@@ -133,7 +167,6 @@ void genCode(Node* _node, String& _genCodeString) {
 		//Print::green("generated FUN_DEF: |" + _tempGenCode + "|" + std::to_string(currentIndentLevel));
 		//Print::map(_map);
 	}
-
 	
 	else if (_node->type == CodeType::IF_BLK) {
 		
@@ -174,6 +207,28 @@ void genCode(Node* _node, String& _genCodeString) {
 		_genCodeString += _indentTabs + _tempGenCode + '\n';
 
 		//Print::green("generated COMMENT: |" + _tempGenCode + '|' + std::to_string(currentIndentLevel));
+	}
+	else if (_node->type == CodeType::CPP_BLK) {
+
+		String _indentMinusOneTabs = _indentTabs;
+		_indentMinusOneTabs.pop_back();
+
+		_tempGenCode = "try {\n" + _map[CPP_BLK_BODY][0] + '\n'
+			+ _indentMinusOneTabs + "} catch(const std::exception& _err){\n"
+			+ _indentTabs + "std::cout << \"\033[1;31m\" << \"[error at cpp block '" + _map[CPP_BLK_IDEN][0] + "']: \" << _err.what() << \"\033[0m\" << std::endl;\n"
+			+ _indentMinusOneTabs + "}"
+			;
+
+		_genCodeString += _tempGenCode + '\n';
+		
+		//Print::green("generated CPP block: |" + _tempGenCode + '|' + std::to_string(currentIndentLevel));
+	}
+	else if (_node->type == CodeType::EXPRESSION_STMT) {
+		_tempGenCode = _map[RHS_EXPR][0];
+
+		_genCodeString += _indentTabs + _tempGenCode + ";\n";
+
+		//Print::green("generated Expression: |" + _tempGenCode + '|' + std::to_string(currentIndentLevel));
 	}
 
 

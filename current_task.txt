@@ -7,7 +7,7 @@ Tasks:
  
  3) break the tree of strings into CodeType objects by linearly parsing them and dividing them into different 'Type' enum. (basic part done/advance part pending!)
 	
-	implement 'use' keyword with json literal to add some C++ source code classes, functions, variables, etc. in the symbol table respectively.
+	forward declare C++ source code classes, functions, variables, etc. so that they get added in the symbol table respectively.
 
  4) Generate the relevant CPP code using generateCPP() functions.(*WORKING!)
 

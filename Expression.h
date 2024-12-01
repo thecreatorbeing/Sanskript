@@ -618,7 +618,11 @@ public:
 		returnType(_findReturnType(_expr))
 	{}
 
+	/*(UPDATABLE!):- single variable and function call is also treated as expression!*/
 	static bool _isValidExpression(const String& _expr) {
+
+		/*update below code!*/
+		return true;
 
 		Print::warning("expression is: |" + _expr + "|");
 
@@ -629,7 +633,9 @@ public:
 		if (__isBalanced(_expr)) { return true; }
 	}
 
+	/*(UPDATABLE!)*/
 	static String _findReturnType(const String& _expr) {
+		Print::warning("_findReturnType() is called!");
 		return "LOL!";
 	}
 

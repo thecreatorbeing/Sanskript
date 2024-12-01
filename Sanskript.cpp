@@ -110,7 +110,7 @@ int main(int argCount, char* argValues)
     Function::printTable();*/ /*debug/testing purpose*/
 
     
-    /*update: support this inportant feature!*/
+    /*update: support this important feature!*/
     /*String expString = "num1 + num2";
     ExpressionValidator expr = ExpressionValidator(expString);*/
 
@@ -125,9 +125,9 @@ int main(int argCount, char* argValues)
     //Print::yellow(generator._genCodeString);
 
     /*---------------Exporting_CPP_Code---------------*/
-    
+   
     std::ofstream outFile(_outputFileName); // Create and open a text file 
-    if (outFile.is_open()) { 
+    if (outFile.is_open() && !Global::errorFlag) { 
         outFile << generator._genCodeString << std::endl; // Write to the file 
         outFile.close(); // Close the file 
         
@@ -140,6 +140,6 @@ int main(int argCount, char* argValues)
         Print::error("Code save failed!");
         //Print::green("-------------------------------------------");
     }
-
+    
     return 0;
 }

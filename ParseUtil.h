@@ -15,7 +15,9 @@ const String IDENTIFIERS = "identifiers";
 const String DATATYPE = "datatype";
 	  
 const String VAR_IDENTIFIER = "varidentifier";
-const String RHS_VALUE = "rhsvalue";
+
+/*RHS_EXPR can also be used for bare function call */
+const String RHS_EXPR = "rhsExpr";
 //const String LHS_VALUE = "lhsvalue";/*VAL_IDENTIFIER works same!*/
 	  
 const String LH_OPER = "lhop";
@@ -75,6 +77,9 @@ const String STR_VALUE = "strvalue";
 	  
 const String CMT_VALUE = "cmtvalue";
 
+const String CPP_BLK_IDEN = "cppBlkIden";
+const String CPP_BLK_BODY = "cppBlkBody";
+
 class Parse {
 private:
 	/*check if classname is valid ($ not allowed)*/
@@ -106,6 +111,35 @@ private:
 		}
 
 		/*otherwise, the class is valid!*/
+		return true;
+	}
+
+	/*checks for valid identifier (start with '_' or alphabet, then may contain number but '$' is not allowed)*/
+	static bool isValidNoDollarIden(const std::string& _iden) {
+		// Check if the string is empty
+		if (_iden.empty()) {
+			return false;
+		}
+
+		// The first character must be a letter or underscore
+		if (!isalpha(_iden[0]) && _iden[0] != '_') {
+			return false;
+		}
+
+		// Loop through remaining characters and check if they are alphanumeric or underscore
+		for (size_t i = 1; i < _iden.size(); ++i) {
+			if (!isalnum(_iden[i]) && _iden[i] != '_') {
+				return false;
+			}
+		}
+
+		// Identifier cannot be a keyword
+		for (std::string k : keywords) {
+			if (k == _iden) {
+				return false;
+			}
+		}
+
 		return true;
 	}
 
@@ -241,7 +275,7 @@ public:
 		//Print::green("|"+_rhs+"|");
 
 		_map[VAR_IDENTIFIER] = { _lhs };/*read this twice!*/
-		_map[RHS_VALUE] = { _rhs };/*this is an array/vector!*/
+		_map[RHS_EXPR] = { _rhs };/*this is an array/vector!*/
 
 		return _map;
 	}
@@ -273,6 +307,209 @@ public:
 	static CodeMap raiseErrStmt(StrVector _words) {
 		CodeMap _map;
 
+
+		return _map;
+	}
+
+	static CodeMap classDeclaration(StrVector _words) {
+		CodeMap _map;
+
+		Print::error("Classes are not supported currently!");
+		Global::errorFlag = true;
+
+		return _map;
+	}
+
+	static CodeMap funDeclaration(StrVector _words) {
+		CodeMap _map;
+
+		//ex, declare function div(a as int, b as int) returns int beware ZeroDivError
+
+		String _funName = _words[2], _returnType = "void";/*default return type*/
+
+		int _parenStart = _funName.find("("), _parenEnd = -1;
+		if (_parenStart != -1) {
+			_funName = _funName.substr(0, _parenStart);
+		}
+
+		for (int i = 0; i < _words.size(); i++) {
+			if (_words[i] == "returns") {
+				_parenEnd = i - 1;
+				_returnType = _words[i + 1];
+				break;
+			}
+		}
+
+		String _paramString = "";
+		for (int i = 2; i < _parenEnd + 1; i++) { _paramString += _words[i] + ((i == _parenEnd) ? "" : " "); }
+
+		_paramString = _paramString.substr(_parenStart);
+
+		StrVector _ParamsStrVector;
+		String _currentStr;
+		for (int i = 1; i < _paramString.size() - 1; i++) {
+			char __c = _paramString[i];
+
+			if (__c == ',') {
+				_ParamsStrVector.push_back(_currentStr);
+				_currentStr.clear();
+			}
+			else if (i == _paramString.size() - 2) {
+				_currentStr += __c;
+				_ParamsStrVector.push_back(_currentStr);
+				_currentStr.clear();
+			}
+			else {
+				//if ( __c == ' ' && _paramString[i - 1] != ',') {
+				_currentStr += __c;
+				//}
+			}
+		}
+
+		std::vector<std::vector<String>> _params;
+		StrVector __tempVec;
+		String __temp;
+		char _chr;
+		for (const String& _s : _ParamsStrVector) {
+			//Print::warning("'"+_s+"'");
+			for (int __i = 0; __i < _s.size(); __i++) {
+				_chr = _s[__i];
+
+				if (_chr == ' ') {
+					if (!__temp.empty()) {
+						//Print::warning("added: '" + __temp +"'");
+						__tempVec.push_back(__temp);
+						__temp.clear();
+					}
+				}
+				else if (_chr == ',' || __i == _s.size() - 1) {
+					if (!__tempVec.empty()) {
+						__temp += _chr;
+						//Print::warning("added: '" + __temp + "'");
+						__tempVec.push_back(__temp);
+						__temp.clear();
+						_params.push_back(__tempVec);
+						__tempVec.clear();
+					}
+				}
+				else {
+					__temp += _chr;
+				}
+			}
+		}
+		String _tmpVarDef, ___, _funString = "", _accessMod, _varIden, _varDType;
+		bool _isConst = false;
+		for (int _i = 0; _i < _words.size(); _i++) { _funString += _words[_i] + ((_i != _words.size() - 1) ? " " : ""); }
+
+		if ((!Parse::isValidClassName(_returnType)) && (_returnType != "void")) {/*because, void is valid return type but not a class which can create objects*/
+			Print::error("return type: '" + _returnType + "' is not valid, in line: '" + _funString + "'");
+			Global::errorFlag = true;
+		}
+		if (!Class::symbolTableContains(_returnType)) {
+			Print::error("definition for return type class named '" + _returnType + "' is not found, in line: '" + _funString + "'");
+			Global::errorFlag = true;
+		}
+
+		_map[FUN_CLASS_NAME].push_back("");
+		if (!Global::blockStack.empty()) {
+			int __indx = Global::findInBlockStack("class");
+			if (__indx != -1) {
+				_map[FUN_CLASS_NAME] = { Global::blockStack[__indx][1] };
+			}
+		}
+
+		StrVector _paramDTypes, _paramIden;
+		for (const StrVector& _sVec : _params) {
+			for (int __i = 0; __i < _sVec.size(); __i++) { ___ = _sVec[__i]; _tmpVarDef += ___ + ((__i != _sVec.size() - 1) ? " " : ""); }
+
+			_varDType = _sVec[_sVec.size() - 1];
+			if (!Parse::isValidClassName(_varDType)) {
+				Print::error("class name: '" + _varDType + "' is not valid, in line: '" + _funString + "'");
+				Global::errorFlag = true;
+			}
+			if (!Class::symbolTableContains(_varDType)) {
+				Print::error("definition for class named '" + _varDType + " is not found, in line: '" + _funString + "'");
+				Global::errorFlag = true;
+			}
+
+			if (_sVec[0] == "const") {
+				_isConst = true;
+				_varIden = _sVec[1];
+			}
+			else {
+				_varIden = _sVec[0];
+			}
+
+			if (_sVec[_sVec.size() - 2] != "as") {
+				Print::error("syntax error: '" + _tmpVarDef + "' in line '" + _funString + "'");
+				Global::errorFlag = true;
+			}
+			if (_varIden.starts_with('$')) {
+				Print::error("syntax error: static variable '" + _tmpVarDef + "' is not allowed inside function definition '" + _funString + "' ");
+				Global::errorFlag = true;
+			}
+			if (!isValidIdentifier(_varIden)) {
+				Print::error("invalid identifier: '" + _tmpVarDef + "' is not a valid variable identifier in line: '" + _funString + "' ");
+				Global::errorFlag = true;
+			}
+			else {/*add them into variable's symbol table*/
+				/*python style access modifiers*/
+				if (_varIden.starts_with("__")) { _accessMod = "private"; }
+				else if (_varIden.starts_with("_")) { _accessMod = "protected"; }
+				else { _accessMod = "public"; }
+
+				_paramDTypes.push_back(_varDType);
+				_paramIden.push_back(_varIden);
+
+				Variable::insertVariable(_varIden, _varDType, _map[FUN_CLASS_NAME][0], _accessMod, false, _isConst, 0);/*currently arrays are not supported!*/
+			}
+
+			_accessMod.clear();
+			_tmpVarDef.clear();
+			_varIden.clear();
+			_varDType.clear();
+			_isConst = false;
+		}
+
+		/*Print::warning("------------------------------------------------------------------------");
+		for (const StrVector& __ : _params) {
+			for (const String& _ : __) {
+				std::cout << "|" << _ << "|";
+			}
+			std::cout << std::endl;
+		}
+		Print::warning("------------------------------------------------------------------------");*/
+		//Print::warning("fun: '"+_funName + "' params: '"+ _paramString + "'");
+		String __funAccMod = "";
+		if (_funName.starts_with("__")) { __funAccMod = "private"; }
+		else if (_funName.starts_with('_')) { __funAccMod = "protected"; }
+		else { __funAccMod = "public"; }
+
+		_map[FUN_IDENTIFIER].push_back(_funName);
+		_map[FUN_PARAM_DTYPE] = _paramDTypes;
+		_map[FUN_PARAM_IDEN] = _paramIden;
+		_map[FUN_RETURN_TYPE].push_back(_returnType);
+		_map[FUN_ACCESS_MODIFIER].push_back(__funAccMod);
+		_map[FUN_BEWARE_ERR].push_back("");
+		_map[FUN_STATIC_FUN].push_back((_funName.starts_with('$')) ? "true" : "false");
+
+		return _map;
+	}
+
+	static CodeMap behDeclaration(StrVector _words) {
+		CodeMap _map;
+
+		Print::error("behaviors are not supported currently!");
+		Global::errorFlag = true;
+
+		return _map;
+	}
+
+	static CodeMap operDeclaration(StrVector _words) {
+		CodeMap _map;
+
+		Print::error("Custom Operators are not supported currently!");
+		Global::errorFlag = true;
 
 		return _map;
 	}
@@ -412,14 +649,17 @@ public:
 			if (_sVec[_sVec.size() - 2] != "as") {
 				Print::error("syntax error: '" + _tmpVarDef + "' in line '" + _funString + "'");
 				Global::errorFlag = true;
+				return {/*empty CodeMap*/ };
 			}
 			if (_varIden.starts_with('$')) {
 				Print::error("syntax error: static variable '" + _tmpVarDef + "' is not allowed inside function definition '" + _funString + "' ");
 				Global::errorFlag = true;
+				return {/*empty CodeMap*/ };
 			}
 			if (!isValidIdentifier(_varIden)) {
 				Print::error("invalid identifier: '" + _tmpVarDef + "' is not a valid variable identifier in line: '" + _funString + "' ");
 				Global::errorFlag = true;
+				return {/*empty CodeMap*/};
 			}
 			else {/*add them into variable's symbol table*/
 				/*python style access modifiers*/
@@ -611,6 +851,51 @@ public:
 		_map[CMT_VALUE] = { _cmt };
 
 		return _map;
+	}
+
+	static CodeMap cppBlk(String _cppBlkString, int _indentLevel) {
+		CodeMap _map;
+
+		/*index at which cpp block identifier's name ends*/
+		size_t cppBlkIdenEndIndex = -1;
+		cppBlkIdenEndIndex = _cppBlkString.find_first_of('{');
+
+		if (cppBlkIdenEndIndex == -1 || !std::isspace(_cppBlkString[3]) ) {/*no  space between "cpp" keyword and block name*/
+			Print::error("Invalid syntax \"" + _cppBlkString + "\"");
+			Global::errorFlag = true;
+			return{/*empty map*/ };
+		}
+
+		if (std::isspace(_cppBlkString[cppBlkIdenEndIndex - 1])) {/*whitespace between identifier and '{' */
+			cppBlkIdenEndIndex -= 1;/*exclude the whitespace*/
+		}
+
+		String _cppBlkIden = _cppBlkString.substr(4, cppBlkIdenEndIndex-4);/*identifier starts after "cpp " hence at 4th index in String*/
+		//Print::yellow("|"+_cppBlkIden+"|");
+
+		if (_cppBlkIden.empty()) {
+			Print::error("unnamed \"cpp\" block \""+ _cppBlkString +"\" is not allowed");
+			Global::errorFlag = true;
+			return {/*empty map*/};
+		}		
+
+		/*validate cppBlockIden against variable-like identifier rules, '$' not allowed*/
+		if (  !Parse::isValidNoDollarIden(_cppBlkIden)  ) {
+			Print::error("\"cpp\" block identifier \"" + _cppBlkIden + "\" is not valid");
+			Global::errorFlag = true;
+
+			return {/*empty CodeMap*/ };
+		}
+		else {
+
+			String _cppCode = _cppBlkString.substr(cppBlkIdenEndIndex+1, _cppBlkString.find_last_of('}') - cppBlkIdenEndIndex - 1);
+			//Print::yellow("|"+_cppCode+"|");
+
+			_map[CPP_BLK_IDEN] = { _cppBlkIden };
+			_map[CPP_BLK_BODY] = { _cppCode };
+
+			return _map;
+		}
 	}
 
 };

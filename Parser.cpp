@@ -7,7 +7,8 @@
 #include"Expression.h"
 
 /*checks for valid identifier*/
-bool isVldIden(const String&);
+/*bool isVldIden(const String&);//moved to ParseUtil.h*/
+
 //bool isKwrd(const String&);/*this one is moved to Keywords.h*/
 bool isSep(char);/*this one is now being imported from Lexer.h (i radefined this function due to linker errors!)*/
 void parseNode(StringNode*, Tree*);
@@ -37,6 +38,57 @@ void parseNode(StringNode* _node, Tree* _root) {
         _root->insert(_mapData, _root->current, Type::INVITE_STMT, _node->level);
         std::cout << _strNode->data << " is identified as InviteStmt\n";*/
         return;
+    }
+    else if (_words[0] == "declare") { /*define block*/
+
+        if (_words[1] == "class") {
+            
+            _mapData = Parse::classDeclaration(_words);
+            _root->insert(_mapData, _root->current, CodeType::CLASS_DEC_STMT, _node->level);
+            //std::cout << _node->data << " is identified as ClassDeclarationStmt\n";
+            Global::addBlockToStack("class", _words[2]);
+        }
+        else if (_words[1] == "function") {
+            //std::cout << _node->data << " is identified as FunDeclarationStmt\n";
+            _mapData = Parse::funDeclaration(_words);
+            _root->insert(_mapData, _root->current, CodeType::FUN_DEC_STMT, _node->level);
+
+            String __funName = _mapData[FUN_IDENTIFIER][0];
+
+            Global::addBlockToStack("function", __funName);
+            //Print::warning("added fun:|" + __funName + "|");
+
+            bool __isStatic = (_mapData[FUN_STATIC_FUN][0] == "true") ? true : false;
+            Function::insertFun(__funName, _mapData[FUN_PARAM_DTYPE], _mapData[FUN_RETURN_TYPE][0], _mapData[FUN_BEWARE_ERR][0],
+                _mapData[FUN_ACCESS_MODIFIER][0], _mapData[FUN_CLASS_NAME][0], __isStatic);
+            //Print::map(_mapData);
+        }
+        else if (_words[1] == "behavior") {
+            Print::error("behavior are not supported yet!");
+            Global::errorFlag = true;
+            /*_mapData = Parse::funDef(_words);
+            _root->insert(_mapData, _root->current, Type::BEH_DEC_STMT, _node->level);
+            std::cout << _strNode->data << " is identified as BehDefBlk\n";
+            Global::addBlockToStack("behavior", _words[2]);*/
+        }
+        else if (_words[1] == "operator") {
+            Print::error("operator are not supported yet!");
+            Global::errorFlag = true;
+            /*_mapData = Parse::funDef(_words);
+            _root->insert(_mapData, _root->current, Type::OPR_DEC_STMT, _node->level);
+            std::cout << _strNode->data << " is identified as OprDefBlk\n";
+            Global::addBlockToStack("operator", _words[2]);*/
+        }
+        else if (_words[_words.size() - 2] == "as") {/*var declaration*/
+            //std::cout << _node->data << " is identified as VarDecStmt\n";
+            _mapData = Parse::varDeclaration(_words);
+            _root->insert(_mapData, _root->current, CodeType::VAR_DEC_STMT, _node->level);
+            //Print::map(_mapData);
+        }
+        else {
+            Print::error("code snippet: '" + _node->data + "' is not identified!");
+            Global::errorFlag = true;
+        }
     }
     else if (_words[0] == "define") { /*define block*/
 
@@ -78,12 +130,6 @@ void parseNode(StringNode* _node, Tree* _root) {
             _root->insert(_mapData, _root->current, Type::OPR_DEF_BLK, _node->level);
             std::cout << _strNode->data << " is identified as OprDefBlk\n";
             Global::addBlockToStack("operator", _words[2]);*/
-        }
-        else if (_words[_words.size() - 2] == "as") {/*var declaration*/
-            //std::cout << _node->data << " is identified as VarDecStmt\n";
-            _mapData = Parse::varDeclaration(_words);
-            _root->insert(_mapData, _root->current, CodeType::VAR_DEC_STMT, _node->level);
-            //Print::map(_mapData);
         }
         else {
             Print::error("code snippet: '" + _node->data + "' is not identified!");
@@ -161,13 +207,26 @@ void parseNode(StringNode* _node, Tree* _root) {
         _mapData = Parse::raiseErrStmt(_words);
         _root->insert(_mapData, _root->current, CodeType::RAISE_ERR_STMT, _node->level);
     }
-    else if (_words.size() > 1 && isVariable(_words[0]) && _words[1] == "=") {
+    else if (_words.size() > 1 && _words[1] == "=" && isVariable(_words[0])) {
         //std::cout << _node->data << " is identified as AssignmentStmt\n";
         _mapData = Parse::assignment(_words);
         _root->insert(_mapData, _root->current, CodeType::ASSIGNMENT_STMT, _node->level);
     }
+    else if (_words[0] == "cpp") {
+        //Print::yellow("cpp blk found!");
+        //_mapData = Parse::cppBlk(_words, _node->level);
+        // /*using _words here gives wrong output so passing node->data in an array*/
+        _mapData = Parse::cppBlk( _node->data, _node->level);
+        _root->insert(_mapData, _root->current, CodeType::CPP_BLK, _node->level);
+    }
     else {
-        std::cout << "\ncode snippet: '" << _node->data << "' is not identified!\n" << std::endl;
+        if (ExpressionValidator::_isValidExpression(_node->data)) {
+            _mapData[RHS_EXPR] = { _node->data };
+            _root->insert( _mapData, _root->current, CodeType::EXPRESSION_STMT, _node->level);
+        }
+        else {
+            std::cout << "\ncode snippet: '" << _node->data << "' is not identified!\n" << std::endl;
+        }
     }
 
     if (_node->children.size() > 0) { Variable::enterScope(); }
@@ -267,35 +326,6 @@ StrVector breakCode(String _child) {
     }*/ /*for debug/testing purpose!*/
 
     return _retrnCode;
-}
-
-/*different than ParseUtil's function*/
-bool isVldIden(const std::string& _iden) {
-    // Check if the string is empty
-    if (_iden.empty()) {
-        return false;
-    }
-
-    // The first character must be a letter or underscore
-    if (!isalpha(_iden[0]) && _iden[0] != '_') {
-        return false;
-    }
-
-    // Loop through remaining characters and check if they are alphanumeric or underscore
-    for (size_t i = 1; i < _iden.size(); ++i) {
-        if (!isalnum(_iden[i]) && _iden[i] != '_') {
-            return false;
-        }
-    }
-
-    // Identifier cannot be a keyword
-    for (std::string k : keywords) {
-        if (k == _iden) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 /*checks if char is Separator {' ', '\t', '\n'}*/
